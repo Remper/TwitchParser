@@ -169,8 +169,14 @@ public class CorpusManager {
         }
 
         //Now we have to maintain our directory structure
-        if (!new File(getChildPath(corpusFolder.getPath(), broadcaster)).mkdir()) {
-            throw new Exception("Failed to create a new directory for a broadcaster");
+        File casterFolder = new File(getChildPath(corpusFolder.getPath(), broadcaster));
+        if (casterFolder.exists() && casterFolder.isDirectory()) {
+            System.out.println("Directory for "+broadcaster+" already exists. Skipping creation");
+            return caster;
+        }
+
+        if (!casterFolder.mkdir()) {
+            throw new Exception("Can't create directory for "+broadcaster+". Aborting");
         }
         return caster;
     }

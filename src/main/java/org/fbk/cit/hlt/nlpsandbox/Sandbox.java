@@ -30,7 +30,7 @@ public class Sandbox {
 
         CorpusManager cm = null;
         try {
-            cm = CorpusManager.createCorpus("/Users/remper/Downloads/corpus");
+            cm = new CorpusManager("/Users/remper/Downloads/corpus");
             cm.initAPI(username, token);
             cm.recordStream(list.get(0));
         } catch (Exception e) {
