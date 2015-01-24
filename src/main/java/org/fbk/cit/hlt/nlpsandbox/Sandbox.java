@@ -1,19 +1,15 @@
 package org.fbk.cit.hlt.nlpsandbox;
 
-import java.io.*;
-import java.lang.reflect.Array;
 import java.util.*;
 
 //IRC library
-import com.sorcix.sirc.*;
-import ru.remper.parsers.twitchtv.CorpusManager;
-import ru.remper.parsers.twitchtv.api.*;
-import ru.remper.parsers.twitchtv.api.request.Filter;
-import ru.remper.parsers.twitchtv.api.result.*;
-import ru.remper.parsers.twitchtv.stream.VLCWrapper;
+import org.fbk.cit.hlt.parsers.hls.twitchtv.CorpusManager;
+import org.fbk.cit.hlt.parsers.hls.twitchtv.api.KrakenAPI;
+import org.fbk.cit.hlt.parsers.hls.twitchtv.api.result.Stream;
+import org.fbk.cit.hlt.parsers.hls.twitchtv.api.request.Filter;
 
 /**
- * Some code goes here
+ * Example code
  */
 public class Sandbox {
     public static void main(String args[]) {
