@@ -2,6 +2,7 @@ package org.fbk.cit.hlt.parsers.hls.twitchtv;
 
 import org.fbk.cit.hlt.parsers.hls.twitchtv.api.SecretAPI;
 import org.fbk.cit.hlt.parsers.hls.twitchtv.api.Usher;
+import org.fbk.cit.hlt.parsers.hls.twitchtv.api.result.Stream;
 import org.fbk.cit.hlt.parsers.hls.twitchtv.stream.IrcWrapper;
 import org.fbk.cit.hlt.parsers.hls.twitchtv.stream.VLCWrapper;
 import org.fbk.cit.hlt.parsers.hls.twitchtv.api.result.AccessToken;
