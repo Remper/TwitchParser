@@ -1,4 +1,4 @@
-package org.fbk.cit.hlt.parsers.hls.twitchtv.api.result;
+package org.fbk.cit.hlt.parsers.twitchtv.api.result;
 
 import javax.json.JsonNumber;
 import javax.json.JsonObject;

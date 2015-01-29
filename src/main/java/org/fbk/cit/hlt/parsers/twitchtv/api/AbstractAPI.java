@@ -1,4 +1,4 @@
-package org.fbk.cit.hlt.parsers.hls.twitchtv.api;
+package org.fbk.cit.hlt.parsers.twitchtv.api;
 
 import org.apache.commons.io.IOUtils;
 
@@ -8,6 +8,7 @@ import javax.json.JsonReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
@@ -49,6 +50,16 @@ public abstract class AbstractAPI {
             throws IOException
     {
         System.setProperty("http.keepAlive", "false");
+        
+        URL url = getUrl(method, params);
+        URLConnection conn = url.openConnection();
+        conn.setUseCaches(false);
+        conn.setRequestProperty("User-Agent", "Mechanical Mockingbird");
+        conn.connect();
+        return conn.getInputStream();
+    }
+    
+    protected URL getUrl(String method, Map<String, String> params) throws IOException {
         StringBuilder sb = new StringBuilder(255);
         sb.append("?oauth_token=");
         sb.append(this.token);
@@ -58,12 +69,7 @@ public abstract class AbstractAPI {
             sb.append("=");
             sb.append(URLEncoder.encode(e.getValue(), "UTF-8"));
         }
-
-        URL url = new URL(this.schema, this.host, "/"+this.apiOffset+"/" + method + sb.toString());
-        URLConnection conn = url.openConnection();
-        conn.setUseCaches(false);
-        conn.setRequestProperty("User-Agent", "Remper's Corpora parser");
-        conn.connect();
-        return conn.getInputStream();
+        
+        return new URL(this.schema, this.host, "/"+this.apiOffset+"/" + method + sb.toString());
     }
 }

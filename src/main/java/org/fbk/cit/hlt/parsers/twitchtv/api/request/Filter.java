@@ -1,4 +1,4 @@
-package org.fbk.cit.hlt.parsers.hls.twitchtv.api.request;
+package org.fbk.cit.hlt.parsers.twitchtv.api.request;
 
 import java.util.HashMap;
 import java.util.Map;

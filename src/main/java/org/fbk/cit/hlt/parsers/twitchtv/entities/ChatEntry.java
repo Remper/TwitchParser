@@ -1,4 +1,4 @@
-package org.fbk.cit.hlt.parsers.hls.twitchtv.entities;
+package org.fbk.cit.hlt.parsers.twitchtv.entities;
 
 import java.sql.Time;
 

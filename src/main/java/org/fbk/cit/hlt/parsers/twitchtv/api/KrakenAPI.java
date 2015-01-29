@@ -1,8 +1,8 @@
-package org.fbk.cit.hlt.parsers.hls.twitchtv.api;
+package org.fbk.cit.hlt.parsers.twitchtv.api;
 
-import org.fbk.cit.hlt.parsers.hls.twitchtv.api.request.Filter;
-import org.fbk.cit.hlt.parsers.hls.twitchtv.api.result.Game;
-import org.fbk.cit.hlt.parsers.hls.twitchtv.api.result.Stream;
+import org.fbk.cit.hlt.parsers.twitchtv.api.request.Filter;
+import org.fbk.cit.hlt.parsers.twitchtv.api.result.Game;
+import org.fbk.cit.hlt.parsers.twitchtv.api.result.Stream;
 
 import javax.json.*;
 import java.io.IOException;

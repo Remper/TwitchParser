@@ -3,10 +3,10 @@ package org.fbk.cit.hlt.nlpsandbox;
 import java.util.*;
 
 //IRC library
-import org.fbk.cit.hlt.parsers.hls.twitchtv.CorpusManager;
-import org.fbk.cit.hlt.parsers.hls.twitchtv.api.KrakenAPI;
-import org.fbk.cit.hlt.parsers.hls.twitchtv.api.result.Stream;
-import org.fbk.cit.hlt.parsers.hls.twitchtv.api.request.Filter;
+import org.fbk.cit.hlt.parsers.twitchtv.CorpusManager;
+import org.fbk.cit.hlt.parsers.twitchtv.api.KrakenAPI;
+import org.fbk.cit.hlt.parsers.twitchtv.api.result.Stream;
+import org.fbk.cit.hlt.parsers.twitchtv.api.request.Filter;
 
 /**
  * Example code

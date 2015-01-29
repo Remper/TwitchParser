@@ -1,6 +1,6 @@
-package org.fbk.cit.hlt.parsers.hls.twitchtv.api;
+package org.fbk.cit.hlt.parsers.twitchtv.api;
 
-import org.fbk.cit.hlt.parsers.hls.twitchtv.api.result.AccessToken;
+import org.fbk.cit.hlt.parsers.twitchtv.api.result.AccessToken;
 
 import javax.json.*;
 import java.io.IOException;

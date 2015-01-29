@@ -1,6 +1,6 @@
-package org.fbk.cit.hlt.parsers.hls.twitchtv.api;
+package org.fbk.cit.hlt.parsers.twitchtv.api;
 
-import org.fbk.cit.hlt.parsers.hls.twitchtv.api.result.AccessToken;
+import org.fbk.cit.hlt.parsers.twitchtv.api.result.AccessToken;
 
 import org.apache.commons.io.IOUtils;
 import java.io.IOException;
@@ -24,7 +24,25 @@ public class Usher extends AbstractAPI {
         this("usher.twitch.tv", token);
     }
 
+    public String getPlaylistUrl(AccessToken accessToken) {
+        try {
+            return getUrl(accessToken.getChannel()+".m3u8", getPlaylistParams(accessToken)).toString();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+    
     public String getPlaylist(AccessToken accessToken) {
+        try(InputStream is = this.getStream(accessToken.getChannel()+".m3u8", getPlaylistParams(accessToken))) {
+            return IOUtils.toString(is);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+    
+    private HashMap<String, String> getPlaylistParams(AccessToken accessToken) {
         HashMap<String, String> params = new HashMap<>();
 
         params.put("token", accessToken.getRawToken());
@@ -34,12 +52,7 @@ public class Usher extends AbstractAPI {
         params.put("player", "twitchweb");
         params.put("allow_source", "true");
         params.put("allow_audio_only", "true");
-
-        try(InputStream is = this.getStream(accessToken.getChannel()+".m3u8", params)) {
-            return IOUtils.toString(is);
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        }
+        
+        return params;
     }
 }

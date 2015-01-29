@@ -1,4 +1,4 @@
-package org.fbk.cit.hlt.parsers.hls.twitchtv.stream;
+package org.fbk.cit.hlt.parsers.twitchtv.stream;
 
 import com.sorcix.sirc.*;
 
@@ -17,10 +17,10 @@ public class IrcWrapper implements ServerListener, MessageListener {
     private String token;
     private String nick;
     private IrcConnection conn;
-    private HashMap<String, BufferedWriter> recording;
-    private SimpleDateFormat dateFormat;
+    private HashMap<String, BufferedWriter> recording = new HashMap<>();
+    private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy.MM.dd-HH-mm-ss");
 
-    private int reconnectAttemps = 5;
+    private int reconnectAttempts = 5;
 
     public IrcWrapper(String token, String nick) {
         this("irc.twitch.tv", token, nick);
@@ -31,9 +31,6 @@ public class IrcWrapper implements ServerListener, MessageListener {
         this.token = token;
         this.nick = nick;
         initIrcConnection();
-
-        recording = new HashMap<>();
-        dateFormat = new SimpleDateFormat();
     }
 
     public void initIrcConnection()
@@ -46,7 +43,7 @@ public class IrcWrapper implements ServerListener, MessageListener {
 
     public void forbidToReconnect()
     {
-        reconnectAttemps = 0;
+        reconnectAttempts = 0;
     }
 
     public void startRecording(String channel, String savePath) throws Exception {
@@ -139,9 +136,9 @@ public class IrcWrapper implements ServerListener, MessageListener {
     @Override
     public void onDisconnect(IrcConnection ircConnection) {
         printLog("IRC Disconnected");
-        if (reconnectAttemps > 0) {
-            reconnectAttemps--;
-            printLog("Trying to reconnect... Attempts left: "+Integer.toString(reconnectAttemps));
+        if (reconnectAttempts > 0) {
+            reconnectAttempts--;
+            printLog("Trying to reconnect... Attempts left: "+Integer.toString(reconnectAttempts));
             connect();
         }
     }

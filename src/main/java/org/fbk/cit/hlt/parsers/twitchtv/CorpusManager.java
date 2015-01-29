@@ -1,12 +1,13 @@
-package org.fbk.cit.hlt.parsers.hls.twitchtv;
+package org.fbk.cit.hlt.parsers.twitchtv;
 
-import org.fbk.cit.hlt.parsers.hls.twitchtv.api.SecretAPI;
-import org.fbk.cit.hlt.parsers.hls.twitchtv.api.Usher;
-import org.fbk.cit.hlt.parsers.hls.twitchtv.api.result.Stream;
-import org.fbk.cit.hlt.parsers.hls.twitchtv.stream.IrcWrapper;
-import org.fbk.cit.hlt.parsers.hls.twitchtv.stream.VLCWrapper;
-import org.fbk.cit.hlt.parsers.hls.twitchtv.api.result.AccessToken;
-import org.fbk.cit.hlt.parsers.hls.twitchtv.entities.Broadcaster;
+import org.fbk.cit.hlt.parsers.twitchtv.api.SecretAPI;
+import org.fbk.cit.hlt.parsers.twitchtv.api.Usher;
+import org.fbk.cit.hlt.parsers.twitchtv.entities.Stream;
+import org.fbk.cit.hlt.parsers.twitchtv.stream.HLSWrapper;
+import org.fbk.cit.hlt.parsers.twitchtv.stream.IrcWrapper;
+import org.fbk.cit.hlt.parsers.twitchtv.stream.VLCWrapper;
+import org.fbk.cit.hlt.parsers.twitchtv.api.result.AccessToken;
+import org.fbk.cit.hlt.parsers.twitchtv.entities.Broadcaster;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
@@ -18,7 +19,7 @@ import java.util.*;
 public class CorpusManager {
     private File corpusFolder;
     private HashMap<String, Broadcaster> broadcasters;
-    private HashMap<Broadcaster, org.fbk.cit.hlt.parsers.hls.twitchtv.entities.Stream> recording;
+    private HashMap<Broadcaster, Stream> recording;
     private IrcWrapper ircWrapper;
     private SecretAPI secretAPI;
     private Usher usherAPI;
@@ -73,7 +74,7 @@ public class CorpusManager {
      *
      * @param stream Stream object received from KrakenAPI
      */
-    public Broadcaster recordStream(Stream stream) throws Exception {
+    public Broadcaster recordStream(org.fbk.cit.hlt.parsers.twitchtv.api.result.Stream stream) throws Exception {
         if (secretAPI == null) {
             throw new Exception("Can't record stream without API support");
         }
@@ -85,7 +86,7 @@ public class CorpusManager {
         String curDate = new SimpleDateFormat("yyyy.MM.dd").format(new Date());
         String streamFolderPath = getChildPath(getBroadcasterFolder(caster).getAbsolutePath(), curDate);
         File streamFolder = null;
-        for (int modifier = 0; modifier < 100; modifier++) {
+        for (int modifier = 0; modifier < 200; modifier++) {
             streamFolder = new File(streamFolderPath+"-"+Integer.toString(modifier));
             if (streamFolder.exists()) {
                 continue;
@@ -99,13 +100,14 @@ public class CorpusManager {
         }
 
         AccessToken tok = secretAPI.getAccessToken(stream.getName());
-        String playlist = usherAPI.getPlaylist(tok);
-        VLCWrapper wrapper = new VLCWrapper("/Applications/VLC.app/Contents/MacOS/VLC");
-        if (!wrapper.startRecording(playlist, getChildPath(streamFolder.getAbsolutePath(), "video"))) {
+        String playlistUrl = usherAPI.getPlaylistUrl(tok);
+        if (playlistUrl == null) {
             throw new Exception("Failed to start stream recording");
         }
+        HLSWrapper wrapper = new HLSWrapper(streamFolder, playlistUrl, caster.getName());
+        wrapper.start();
 
-        org.fbk.cit.hlt.parsers.hls.twitchtv.entities.Stream streamObj = new org.fbk.cit.hlt.parsers.hls.twitchtv.entities.Stream(caster);
+        Stream streamObj = new Stream(caster);
         streamObj.attachVideo(wrapper.convertToVideo());
         recording.put(caster, streamObj);
         ircWrapper.startRecording(stream.getName(), getChildPath(streamFolder.getAbsolutePath(), "chat.txt"));
@@ -114,7 +116,7 @@ public class CorpusManager {
     }
 
     public void stopRecording(Broadcaster caster) {
-        org.fbk.cit.hlt.parsers.hls.twitchtv.entities.Stream stream = recording.get(caster);
+        Stream stream = recording.get(caster);
         if (stream == null) {
             return;
         }
@@ -145,7 +147,7 @@ public class CorpusManager {
     }
 
     public Broadcaster getFirstDeadStream() {
-        for (Map.Entry<Broadcaster, org.fbk.cit.hlt.parsers.hls.twitchtv.entities.Stream> entry : recording.entrySet()) {
+        for (Map.Entry<Broadcaster, Stream> entry : recording.entrySet()) {
             if (entry.getValue().getVideo().isFinishedRecording()) {
                 return entry.getKey();
             }

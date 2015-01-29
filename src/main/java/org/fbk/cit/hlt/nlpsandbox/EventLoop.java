@@ -1,6 +1,6 @@
 package org.fbk.cit.hlt.nlpsandbox;
 
-import org.fbk.cit.hlt.parsers.hls.twitchtv.CorpusManager;
+import org.fbk.cit.hlt.parsers.twitchtv.CorpusManager;
 
 /**
  * Event loop to check if everything is up and running

@@ -1,14 +1,13 @@
-package org.fbk.cit.hlt.parsers.hls.twitchtv.stream;
-
-
-import org.fbk.cit.hlt.parsers.hls.twitchtv.entities.Video;
+package org.fbk.cit.hlt.parsers.twitchtv.stream;
 
 import java.io.*;
 import java.util.ArrayList;
 
 /**
- * Class that handles interaction with VLC
+ * Class that handles interaction with VLC 
+ * Deprecated, use HLSWrapper instead.
  */
+@Deprecated
 public class VLCWrapper {
     private String vlcPath;
     private Process process;
@@ -20,14 +19,6 @@ public class VLCWrapper {
 
     public VLCWrapper(String vlcPath) {
         this.vlcPath = vlcPath;
-    }
-
-    public Video convertToVideo() throws Exception {
-        if (!process.isAlive()) {
-            throw new Exception("Start the recording first");
-        }
-
-        return new Video(process, saveFile.getAbsolutePath());
     }
 
     public boolean startRecording(String playlist, String savePath) {
