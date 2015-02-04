@@ -1,2 +1,2 @@
 Manifest-Version: 1.0
-Main-Class: org.fbk.cit.hlt.nlpsandbox.Sandbox
+Main-Class: org.fbk.cit.hlt.parsers.twitchtv.CorpusRecorder

@@ -100,9 +100,12 @@ public class CorpusManager {
         }
 
         AccessToken tok = secretAPI.getAccessToken(stream.getName());
+        if (tok == null) {
+            throw new Exception("Failed to acquire read permissions to the stream");
+        }
         String playlistUrl = usherAPI.getPlaylistUrl(tok);
         if (playlistUrl == null) {
-            throw new Exception("Failed to start stream recording");
+            throw new Exception("Failed to get playlist URL");
         }
         HLSWrapper wrapper = new HLSWrapper(streamFolder, playlistUrl, caster.getName());
         wrapper.start();
@@ -132,7 +135,7 @@ public class CorpusManager {
 
     public void watchUntilEvent() {
         Broadcaster dead = null;
-        while ((dead = getFirstDeadStream()) == null && recording.size() > 0) {
+        while ((dead = getFirstDeadStream()) == null && isRecording()) {
             try {
                 Thread.sleep(4000);
                 System.out.print('.');
@@ -144,6 +147,10 @@ public class CorpusManager {
         if (dead != null) {
             this.stopRecording(dead);
         }
+    }
+    
+    public boolean isRecording() {
+        return recording.size() > 0;
     }
 
     public Broadcaster getFirstDeadStream() {

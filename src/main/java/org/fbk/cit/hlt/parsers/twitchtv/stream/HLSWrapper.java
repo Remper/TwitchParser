@@ -1,11 +1,9 @@
 package org.fbk.cit.hlt.parsers.twitchtv.stream;
 
-import org.apache.commons.cli.ParseException;
 import org.fbk.cit.hlt.parsers.hls.MediaType;
 import org.fbk.cit.hlt.parsers.hls.StreamManager;
-import org.fbk.cit.hlt.parsers.hls.persist.FilePersister;
-import org.fbk.cit.hlt.parsers.hls.persist.Persister;
 import org.fbk.cit.hlt.parsers.twitchtv.entities.Video;
+import org.fbk.cit.hlt.parsers.hls.persist.*;
 
 import java.io.File;
 
@@ -13,7 +11,6 @@ import java.io.File;
  * A wrapper to our HLS implementation
  */
 public class HLSWrapper extends Thread {
-    private Process process;
     private File saveFolder;
     private String uri;
     private String label;
@@ -32,10 +29,6 @@ public class HLSWrapper extends Thread {
 
     public Video convertToVideo() throws Exception {
         return new Video(this, saveFolder.getAbsolutePath());
-    }
-
-    public Process getProcess() {
-        return process;
     }
 
     public File getSaveFolder() {
