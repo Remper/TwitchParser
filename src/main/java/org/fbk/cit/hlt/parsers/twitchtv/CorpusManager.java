@@ -126,6 +126,7 @@ public class CorpusManager {
 
         stream.getVideo().forceStop();
         ircWrapper.stopRecording(caster.getName());
+        recording.remove(caster);
     }
 
     public void stopRecording() {
