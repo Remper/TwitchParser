@@ -99,7 +99,7 @@ public class KrakenAPI extends AbstractAPI {
             params.put("game", game);
         }
         if (channels != null) {
-            params.put("channels", channels);
+            params.put("channel", channels);
         }
 
         return this.execute("streams", filter.mergeParams(params));
