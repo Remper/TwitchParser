@@ -3,9 +3,10 @@ package org.fbk.cit.hlt.parsers.twitchtv;
 import org.fbk.cit.hlt.parsers.twitchtv.api.SecretAPI;
 import org.fbk.cit.hlt.parsers.twitchtv.api.Usher;
 import org.fbk.cit.hlt.parsers.twitchtv.entities.Stream;
+import org.fbk.cit.hlt.parsers.twitchtv.inputs.IRC;
+import org.fbk.cit.hlt.parsers.twitchtv.inputs.IRCFileWriter;
 import org.fbk.cit.hlt.parsers.twitchtv.stream.HLSWrapper;
 import org.fbk.cit.hlt.parsers.twitchtv.stream.IrcWrapper;
-import org.fbk.cit.hlt.parsers.twitchtv.stream.VLCWrapper;
 import org.fbk.cit.hlt.parsers.twitchtv.api.result.AccessToken;
 import org.fbk.cit.hlt.parsers.twitchtv.entities.Broadcaster;
 
@@ -20,11 +21,11 @@ public class CorpusManager {
     private File corpusFolder;
     private HashMap<String, Broadcaster> broadcasters;
     private HashMap<Broadcaster, Stream> recording;
-    private IrcWrapper ircWrapper;
+    private IRC irc;
     private SecretAPI secretAPI;
     private Usher usherAPI;
 
-    public CorpusManager(String corpusFolder) throws Exception {
+    public CorpusManager(String corpusFolder, String name, String token) throws Exception {
         File folder = new File(corpusFolder);
         if (!folder.exists()) {
             throw new Exception("Corpus directory doesn't exist");
@@ -39,17 +40,19 @@ public class CorpusManager {
         broadcasters = new HashMap<>();
         recording = new HashMap<>();
         addExistingBroadcasters();
-
-        ircWrapper = null;
-        secretAPI = null;
-        usherAPI = null;
+        
+        String ircFile = getChildPath(folder.getAbsolutePath(), "irc");
+        irc = new IRC(new IRCFileWriter(ircFile), token, name);
+        irc.addServer("irc.twitch.tv");
+        usherAPI = new Usher(token);
+        secretAPI = new SecretAPI(token);
     }
 
-    public static CorpusManager createCorpus(String corpusFolder) throws Exception {
+    public static CorpusManager createCorpus(String corpusFolder, String name, String token) throws Exception {
         if (!(new File(corpusFolder)).mkdirs()) {
             throw new Exception("Target directory is not empty or not writable. Aborting");
         }
-        return new CorpusManager(corpusFolder);
+        return new CorpusManager(corpusFolder, name, token);
     }
 
     private void addExistingBroadcasters() throws Exception {
@@ -113,7 +116,8 @@ public class CorpusManager {
         Stream streamObj = new Stream(caster);
         streamObj.attachVideo(wrapper.convertToVideo());
         recording.put(caster, streamObj);
-        ircWrapper.startRecording(stream.getName(), getChildPath(streamFolder.getAbsolutePath(), "chat.txt"));
+        irc.addChannel(stream.getName());
+        irc.lazyStart();
 
         return caster;
     }
@@ -125,21 +129,19 @@ public class CorpusManager {
         }
 
         stream.getVideo().forceStop();
-        ircWrapper.stopRecording(caster.getName());
         recording.remove(caster);
     }
 
     public void stopRecording() {
         recording.keySet().forEach(this::stopRecording);
-        ircWrapper.disconnect();
+        irc.stop();
     }
 
     public void watchUntilEvent() {
         Broadcaster dead = null;
         while ((dead = getFirstDeadStream()) == null && isRecording()) {
             try {
-                Thread.sleep(4000);
-                System.out.print('.');
+                Thread.sleep(1000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -194,11 +196,5 @@ public class CorpusManager {
 
     public Collection<Broadcaster> getBroadcasters() {
         return broadcasters.values();
-    }
-
-    public void initAPI(String name, String token) {
-        ircWrapper = new IrcWrapper(token, name);
-        usherAPI = new Usher(token);
-        secretAPI = new SecretAPI(token);
     }
 }

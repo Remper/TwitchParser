@@ -138,4 +138,18 @@ public class Stream {
 
         return ((JsonNumber) value).intValue();
     }
+    
+    @Override
+    public int hashCode() {
+        return this.name.hashCode();
+    }
+    
+    @Override
+    public boolean equals(Object stream) {
+        if (!(stream instanceof Stream)) {
+            return super.equals(stream);
+        }
+        
+        return this.name.equals(((Stream) stream).getName());
+    }
 }

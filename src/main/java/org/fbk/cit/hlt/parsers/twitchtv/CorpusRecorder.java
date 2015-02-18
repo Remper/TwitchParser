@@ -1,48 +1,60 @@
 package org.fbk.cit.hlt.parsers.twitchtv;
 
 import org.apache.commons.cli.*;
+import org.fbk.cit.hlt.parsers.twitchtv.util.OptionBuilder;
+import org.apache.commons.configuration.ConfigurationException;
 import org.fbk.cit.hlt.parsers.twitchtv.api.KrakenAPI;
 import org.fbk.cit.hlt.parsers.twitchtv.api.request.Filter;
 import org.fbk.cit.hlt.parsers.twitchtv.api.result.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Properties;
 
 /**
  * Main entry point for TwitchParser
  */
-public class CorpusRecorder {
-    private Mode mode;
+public class CorpusRecorder extends Thread {
     private String corpus;
-    private String user;
-    private String token;
     private KrakenAPI api;
+    StreamConfiguration config;
     
-    private String game = null;
-    private String name;
+    protected static Logger logger = LoggerFactory.getLogger(CorpusRecorder.class);
     
-    protected Logger logger = LoggerFactory.getLogger(CorpusRecorder.class);
-
-    public CorpusRecorder(Mode mode, String corpus, String user, String token) {
-        this.mode = mode;
-        this.user = user;
-        this.token = token;
-        this.api = new KrakenAPI(token);
+    public CorpusRecorder(String corpus, StreamConfiguration config) {
+        this.config = config;
         this.corpus = corpus;
+        this.api = new KrakenAPI(config.getToken());
+
+        this.setPriority(Thread.NORM_PRIORITY);
+        this.setDaemon(false);
     }
     
+    public static CorpusRecorder resume(String corpus) throws ConfigurationException {
+        //Reading configuration
+        StreamConfiguration configuration = new StreamConfiguration(corpus);
+        CorpusRecorder cr = new CorpusRecorder(corpus, configuration);
+        cr.start();
+        
+        return cr;
+    }
+    
+    @Override
+    public void run() {
+        record();
+    }
+
+    /**
+     * Start recording
+     */
     public void record() {
-        ArrayList<Stream> list;
-        switch (mode) {
-            case SINGLE:
-                list = getSingleStreamByName(name);
-                break;
-            default:
-            case TOP:
-                list = getTopStreamsByGame(game, 5);
-                break;
-        }
+        HashSet<Stream> list = new HashSet<>();
+        list.addAll(getWhitelistedStreams(String.join(",", config.getWhitelist())));
+        logger.info("Querying whitelist channels... " + list.size() + " online");
+        list.addAll(getTopStreams(config.getWildcard()));
         if (list.size() == 0) {
             logger.info("Nothing to record. Aborting");
             return;
@@ -51,8 +63,7 @@ public class CorpusRecorder {
 
         CorpusManager cm = null;
         try {
-            cm = new CorpusManager(corpus);
-            cm.initAPI(user, token);
+            cm = new CorpusManager(corpus, config.getUser(), config.getToken());
         } catch (Exception e) {
             logger.warn("Exception while initializing corpus: " + e.getClass().getSimpleName() + " " + e.getMessage());
             return;
@@ -74,98 +85,47 @@ public class CorpusRecorder {
         logger.info("Stopped recording");
     }
 
-    public ArrayList<Stream> getSingleStreamByName(String name) {
-        return api.getStreams(null, name, new Filter().embeddable().hls().limit(1).offset(0));
+    public ArrayList<Stream> getWhitelistedStreams(String channels) {
+        return api.getStreams(null, channels, new Filter().embeddable().hls().offset(0));
     }
 
-    public ArrayList<Stream> getTopStreamsByGame(String game, int limit) {
-        return api.getStreams(game, null, new Filter().embeddable().hls().limit(limit).offset(0));
-    }
-    
-    public Mode getMode() {
-        return mode;
-    }
-
-    public String getUser() {
-        return user;
-    }
-
-    public String getToken() {
-        return token;
-    }
-
-    public String getGame() {
-        return game;
-    }
-
-    public void setGame(String game) {
-        this.game = game;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
+    public ArrayList<Stream> getTopStreams(int limit) {
+        return api.getStreams(null, null, new Filter().embeddable().hls().limit(limit).offset(0));
     }
 
     public static void main(String args[]) {
+        //Reading defaults
+        StreamConfiguration config;
+        try {
+            config = new StreamConfiguration();
+        } catch (ConfigurationException e) {
+            logger.error("Invalid configuration file: "+e.getClass().getSimpleName()+" "+e.getMessage());
+            System.exit(1);
+            return;
+        }
+        
         //Options specification
-        //TODO: create options explicitly to get rid of extra parsing logic
         Options options = new Options();
-        options.addOption("n", "name", true, "Name of the stream to download");
-        options.addOption("m", "mode", true, "Main command");
-        options.addOption("g", "game", true, "Filter streams by game (if relevant)");
-        options.addOption("c", "corpus", true, "Folder to where we should store the data");
-        options.addOption("u", "user", true, "Twitch login");
-        options.addOption("t", "token", true, "Twitch authorization token");
+        options.addOption("w", StreamConfiguration.PARAM_WILDCARD, true, "Amount of the wildcard streams to download");
+        options.addOption("l", StreamConfiguration.PARAM_WHITELIST, true, "Comma-separated list of whitelist that should always be recorded");
+        options.addOption(OptionBuilder.createRequired("c", "corpus", "Folder to where we should store the data"));
+        options.addOption(OptionBuilder.createRequired("u", "user", "Twitch login"));
+        options.addOption(OptionBuilder.createRequired("t", "token", "Twitch authorization token"));
 
         CommandLineParser parser = new PosixParser();
         CommandLine line;
         CorpusRecorder recorder;
         try {
             line = parser.parse(options, args);
+            config.replaceWithCommandLine(line);
             
-            Mode mode = Mode.SINGLE;
-            if (!line.hasOption("corpus")) {
-                throw new ParseException("Missing parameter corpus");
-            }
-            if (!line.hasOption("user")) {
-                throw new ParseException("Missing parameter user");
-            }
-            if (!line.hasOption("token")) {
-                throw new ParseException("Missing parameter token");
-            }
-            if (line.hasOption("mode")) {
-                mode = Mode.valueOf(line.getOptionValue("mode"));
-            }
-            recorder = new CorpusRecorder(mode, line.getOptionValue("corpus"), line.getOptionValue("user"), line.getOptionValue("token"));
-            switch (mode) {
-                case SINGLE:
-                    if (!line.hasOption("name")) {
-                        throw new ParseException("Missing parameter name for mode SINGLE");
-                    }
-                    recorder.setName(line.getOptionValue("name"));
-                    break;
-                case TOP:
-                    String game = null;
-                    if (line.hasOption("game")) {
-                        game = line.getOptionValue("game");
-                    }
-                    recorder.setGame(game);
-                    break;
-            }
+            recorder = new CorpusRecorder(line.getOptionValue("corpus"), config);
         } catch (Exception e) {
             String footer = "\nError: "+e.getMessage();
-            new HelpFormatter().printHelp(400, "java -jar twitchtv-0.1.jar", "\n", options, footer, true);
+            new HelpFormatter().printHelp(400, "java -jar twitchtv-0.2.jar", "\n", options, footer, true);
             return;
         }
         
         recorder.record();
-    }
-    
-    public enum Mode {
-        TOP, SINGLE
     }
 }
