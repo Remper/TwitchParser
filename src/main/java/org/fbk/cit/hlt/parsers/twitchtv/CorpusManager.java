@@ -25,6 +25,7 @@ public class CorpusManager {
     private HashMap<String, Broadcaster> broadcasters;
     private HashMap<Broadcaster, Stream> recording;
     private IRC irc;
+    private String eventIrcServer;
     private SecretAPI secretAPI;
     private KrakenAPI api;
     private Usher usherAPI;
@@ -130,6 +131,15 @@ public class CorpusManager {
         Stream streamObj = new Stream(caster);
         streamObj.attachVideo(wrapper.convertToVideo());
         recording.put(caster, streamObj);
+        if (eventIrcServer == null) {
+            ArrayList<String> servers = secretAPI.getChatServers(caster.getName());
+            if (servers.size() != 0) {
+                logger.info("Found event server, adding to connect list");
+                Random random = new Random(System.currentTimeMillis());
+                eventIrcServer = servers.get(random.nextInt(servers.size()));
+                irc.addServer(eventIrcServer);
+            }
+        }
         irc.addChannel(stream.getName());
         irc.lazyStart();
 

@@ -2,10 +2,7 @@ package org.fbk.cit.hlt.parsers.twitchtv.inputs;
 
 import org.fbk.cit.hlt.parsers.twitchtv.entities.Broadcaster;
 import org.fbk.cit.hlt.parsers.twitchtv.entities.User;
-import org.pircbotx.Channel;
-import org.pircbotx.Configuration;
-import org.pircbotx.MultiBotManager;
-import org.pircbotx.PircBotX;
+import org.pircbotx.*;
 import org.pircbotx.exception.IrcException;
 import org.pircbotx.hooks.ListenerAdapter;
 import org.pircbotx.hooks.events.ConnectEvent;
@@ -16,9 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 /**
  * IRC messages part
@@ -32,7 +27,7 @@ public class IRC extends ListenerAdapter<PircBotX> {
     Configuration.Builder<PircBotX> defaultConfig;
     IRCReceiver receiver;
     Set<String> channels = new HashSet<>();
-    ArrayList<String> servers = new ArrayList<>();
+    HashMap<String, Integer> servers = new HashMap<>();
     String token;
     String username;
     Status status = Status.DEAD;
@@ -57,8 +52,8 @@ public class IRC extends ListenerAdapter<PircBotX> {
         }
         
         manager = new MultiBotManager<>();
-        for (String server : servers) {
-            manager.addBot(buildForServer(server));
+        for (Map.Entry<String, Integer> server : servers.entrySet()) {
+            manager.addBot(buildForServer(server.getKey(), server.getValue()));
         }
     }
 
@@ -78,14 +73,24 @@ public class IRC extends ListenerAdapter<PircBotX> {
     }
     
     public void addServer(String ip) {
-        servers.add(ip);
-        manager.addBot(buildForServer(ip));
+        int port = 6667;
+        if (ip.contains(":")) {
+            String[] values = ip.split(":");
+            if (values.length > 2) {
+                logger.warn("Unexpected server address");
+            }
+            ip = values[0];
+            port = Integer.parseInt(values[1]);
+        }
+        servers.put(ip, port);
+        manager.addBot(buildForServer(ip, port));
     }
     
-    private Configuration<PircBotX> buildForServer(String hostname) {
-        return new Configuration.Builder<>(defaultConfig)
+    private Configuration<PircBotX> buildForServer(String hostname, int port) {
+        Configuration.Builder<PircBotX> config =  new Configuration.Builder<>(defaultConfig)
                 .setServerHostname(hostname)
-                .buildConfiguration();
+                .setServerPort(port);
+        return config.buildConfiguration();
     }
     
     public void lazyStart() {
