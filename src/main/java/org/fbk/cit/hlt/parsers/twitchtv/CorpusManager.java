@@ -186,7 +186,11 @@ public class CorpusManager {
     }
     
     public boolean isRecording() {
-        return recording.size() > 0;
+        return getOnlineCount() > 0;
+    }
+    
+    public int getOnlineCount() {
+        return recording.size();
     }
 
     public Broadcaster getFirstDeadStream() {

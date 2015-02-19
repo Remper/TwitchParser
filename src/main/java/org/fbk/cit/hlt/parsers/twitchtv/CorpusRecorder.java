@@ -63,7 +63,11 @@ public class CorpusRecorder extends Thread {
         
         while (cm.isRecording() && !Thread.interrupted()) {
             cm.watchUntilEvent();
-            recordStreams(populateRecordList(0));
+            int online = config.getWildcard() - cm.getOnlineCount();
+            if (online < 0) {
+                online = 0;
+            }
+            recordStreams(populateRecordList(online));
         }
         cm.stopRecording();
         
