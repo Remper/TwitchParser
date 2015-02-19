@@ -15,7 +15,7 @@ public class Game {
     public Game(JsonObject game)
     {
         this.viewers = game.getInt("viewers");
-        this.channels = game.getInt("whitelist");
+        this.channels = game.getInt("channels");
         JsonObject innerGame = game.getJsonObject("game");
         this.name = innerGame.getString("name");
         try {

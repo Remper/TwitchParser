@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -24,21 +25,23 @@ import java.util.Set;
 public class IRC extends ListenerAdapter<PircBotX> {
     protected static Logger logger = LoggerFactory.getLogger(IRC.class);
     
+    public static final String CHANNEL_PREFIX = "#";
+    
     MultiBotManager<PircBotX> manager = new MultiBotManager<>();
     Configuration.Builder<PircBotX> defaultConfig;
     IRCReceiver receiver;
-    Set<String> channels;
-    ArrayList<String> servers;
+    Set<String> channels = new HashSet<>();
+    ArrayList<String> servers = new ArrayList<>();
     String token;
     String username;
-    Status status;
+    Status status = Status.DEAD;
     
     public IRC(IRCReceiver receiver, String token, String username) {
         this.receiver = receiver;
         this.token = token;
         this.username = username;
-        this.status = Status.DEAD;
-        Configuration.Builder<PircBotX> config = new Configuration.Builder<>()
+        
+        defaultConfig = new Configuration.Builder<>()
                 .setName(username)
                 .setLogin(username)
                 .setServerPassword("oauth:" + token)
@@ -54,11 +57,14 @@ public class IRC extends ListenerAdapter<PircBotX> {
         
         manager = new MultiBotManager<>();
         for (String server : servers) {
-            manager.addBot(defaultConfig.buildForServer(server));
+            manager.addBot(buildForServer(server));
         }
     }
 
     public void addChannel(String channel) {
+        if (!channel.startsWith(CHANNEL_PREFIX)) {
+            channel = CHANNEL_PREFIX+channel;
+        }
         channels.add(channel);
         defaultConfig.addAutoJoinChannel(channel);
         if (status != Status.ALIVE) {
@@ -72,7 +78,13 @@ public class IRC extends ListenerAdapter<PircBotX> {
     
     public void addServer(String ip) {
         servers.add(ip);
-        manager.addBot(defaultConfig.buildForServer(ip));
+        manager.addBot(buildForServer(ip));
+    }
+    
+    private Configuration<PircBotX> buildForServer(String hostname) {
+        return new Configuration.Builder<>(defaultConfig)
+                .setServerHostname(hostname)
+                .buildConfiguration();
     }
     
     public void lazyStart() {
@@ -120,7 +132,7 @@ public class IRC extends ListenerAdapter<PircBotX> {
     }
     
     private String sanitizeBroadcaster(String caster) {
-        if (caster.startsWith("#")) {
+        if (caster.startsWith(CHANNEL_PREFIX)) {
             return caster.substring(1);
         }
         return caster;

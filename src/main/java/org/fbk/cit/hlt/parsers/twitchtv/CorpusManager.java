@@ -6,7 +6,6 @@ import org.fbk.cit.hlt.parsers.twitchtv.entities.Stream;
 import org.fbk.cit.hlt.parsers.twitchtv.inputs.IRC;
 import org.fbk.cit.hlt.parsers.twitchtv.inputs.IRCFileWriter;
 import org.fbk.cit.hlt.parsers.twitchtv.stream.HLSWrapper;
-import org.fbk.cit.hlt.parsers.twitchtv.stream.IrcWrapper;
 import org.fbk.cit.hlt.parsers.twitchtv.api.result.AccessToken;
 import org.fbk.cit.hlt.parsers.twitchtv.entities.Broadcaster;
 

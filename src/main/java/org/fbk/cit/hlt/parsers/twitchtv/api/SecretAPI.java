@@ -10,7 +10,7 @@ import java.io.IOException;
  */
 public class SecretAPI extends AbstractAPI {
     public SecretAPI(String host, String schema, String token) {
-        super(schema, host, token, "api/whitelist");
+        super(schema, host, token, "api/channels");
     }
 
     public SecretAPI(String host, String token) {
