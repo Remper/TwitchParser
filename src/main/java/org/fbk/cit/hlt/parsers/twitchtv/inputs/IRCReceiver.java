@@ -6,7 +6,6 @@ import org.fbk.cit.hlt.parsers.twitchtv.entities.User;
 /**
  * Interface for receiving chat messages
  */
-public interface IRCReceiver {
+public interface IRCReceiver extends Receiver {
     public void message(String caster, String user, String message, long timestamp);
-    public void flush();
 }

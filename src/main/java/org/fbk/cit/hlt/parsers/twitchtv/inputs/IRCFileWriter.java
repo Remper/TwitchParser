@@ -9,28 +9,15 @@ import java.net.URLEncoder;
 /**
  * File writer that stores data in the specified file
  */
-public class IRCFileWriter implements IRCReceiver {
-    protected static Logger logger = LoggerFactory.getLogger(IRC.class);
-    
-    public static final String FILE_EXTENSION = "csv";
-    
-    protected File file;
-    private Writer buffWriter;
+public class IRCFileWriter extends AbstractFileWriter implements IRCReceiver {
+    protected static Logger logger = LoggerFactory.getLogger(IRCFileWriter.class);
     
     public IRCFileWriter(File file) {
-        this.file = file;
+        super(file);
     }
     
     public IRCFileWriter(String file) {
-        this(new File(file+"."+FILE_EXTENSION));
-    }
-    
-    protected Writer writer() throws IOException {
-        if (buffWriter != null) {
-            return buffWriter;
-        }
-
-        return buffWriter = new BufferedWriter(new FileWriter(file, true));
+        super(file);
     }
     
     @Override
@@ -47,16 +34,5 @@ public class IRCFileWriter implements IRCReceiver {
         } catch (IOException e) {
             logger.warn("Can't write message to file: "+e.getClass()+" "+e.getMessage());
         }
-    }
-    
-    @Override
-    public void flush() {
-        try {
-            buffWriter.flush();
-            buffWriter.close();
-        } catch (IOException e) {
-            logger.warn("Can't close file buffer: "+e.getClass()+" "+e.getMessage());
-        }
-        buffWriter = null;
     }
 }

@@ -1,13 +1,15 @@
 package org.fbk.cit.hlt.parsers.twitchtv;
 
+import org.fbk.cit.hlt.parsers.twitchtv.api.KrakenAPI;
 import org.fbk.cit.hlt.parsers.twitchtv.api.SecretAPI;
 import org.fbk.cit.hlt.parsers.twitchtv.api.Usher;
 import org.fbk.cit.hlt.parsers.twitchtv.entities.Stream;
-import org.fbk.cit.hlt.parsers.twitchtv.inputs.IRC;
-import org.fbk.cit.hlt.parsers.twitchtv.inputs.IRCFileWriter;
+import org.fbk.cit.hlt.parsers.twitchtv.inputs.*;
 import org.fbk.cit.hlt.parsers.twitchtv.stream.HLSWrapper;
 import org.fbk.cit.hlt.parsers.twitchtv.api.result.AccessToken;
 import org.fbk.cit.hlt.parsers.twitchtv.entities.Broadcaster;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
@@ -17,12 +19,16 @@ import java.util.*;
  * Corpus manager that handles storing the corpora
  */
 public class CorpusManager {
+    protected static Logger logger = LoggerFactory.getLogger(CorpusManager.class);
+    
     private File corpusFolder;
     private HashMap<String, Broadcaster> broadcasters;
     private HashMap<Broadcaster, Stream> recording;
     private IRC irc;
     private SecretAPI secretAPI;
+    private KrakenAPI api;
     private Usher usherAPI;
+    private Collection<Receiver> receivers;
 
     public CorpusManager(String corpusFolder, String name, String token) throws Exception {
         File folder = new File(corpusFolder);
@@ -41,10 +47,19 @@ public class CorpusManager {
         addExistingBroadcasters();
         
         String ircFile = getChildPath(folder.getAbsolutePath(), "irc");
-        irc = new IRC(new IRCFileWriter(ircFile), token, name);
+        String streamDataFile = getChildPath(folder.getAbsolutePath(), "stream_data");
+        String nowRecordingFile = getChildPath(folder.getAbsolutePath(), "now_recording");
+        receivers = new ArrayList<>();
+        IRCFileWriter ircReceiver = new IRCFileWriter(ircFile);
+        receivers.add(ircReceiver);
+        receivers.add(new StreamDataFileWriter(streamDataFile));
+        receivers.add(new NowRecordingFileWriter(nowRecordingFile));
+        
+        irc = new IRC(ircReceiver, token, name);
         irc.addServer("irc.twitch.tv");
         usherAPI = new Usher(token);
         secretAPI = new SecretAPI(token);
+        api = new KrakenAPI(token);
     }
 
     public static CorpusManager createCorpus(String corpusFolder, String name, String token) throws Exception {
@@ -77,12 +92,12 @@ public class CorpusManager {
      * @param stream Stream object received from KrakenAPI
      */
     public Broadcaster recordStream(org.fbk.cit.hlt.parsers.twitchtv.api.result.Stream stream) throws Exception {
-        if (secretAPI == null) {
-            throw new Exception("Can't record stream without API support");
-        }
-
-        System.out.println("Starting recording \""+stream.getDisplayName()+"\"");
         Broadcaster caster = addBroadcaster(stream.getName());
+        if (recording.containsKey(caster)) {
+            logger.info("Stream \""+stream.getDisplayName()+"\" is already being recorded");
+            return caster;
+        }
+        logger.info("Starting recording \""+stream.getDisplayName()+"\"");
 
         //Selecting stream folder
         String curDate = new SimpleDateFormat("yyyy.MM.dd").format(new Date());
@@ -138,9 +153,10 @@ public class CorpusManager {
 
     public void watchUntilEvent() {
         Broadcaster dead = null;
-        while ((dead = getFirstDeadStream()) == null && isRecording()) {
+        while ((dead = getFirstDeadStream()) == null && isRecording() && !Thread.interrupted()) {
             try {
-                Thread.sleep(1000);
+                processReceivers();
+                Thread.sleep(1500);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -148,6 +164,14 @@ public class CorpusManager {
 
         if (dead != null) {
             this.stopRecording(dead);
+        }
+    }
+    
+    public void processReceivers() {
+        for (Receiver receiver : receivers) {
+            if (receiver instanceof NowRecordingFileWriter) {
+                ((NowRecordingFileWriter) receiver).dump(recording.keySet());
+            }
         }
     }
     

@@ -2,6 +2,7 @@ package org.fbk.cit.hlt.parsers.twitchtv.inputs;
 
 import org.fbk.cit.hlt.parsers.twitchtv.entities.Broadcaster;
 import org.fbk.cit.hlt.parsers.twitchtv.entities.User;
+import org.pircbotx.Channel;
 import org.pircbotx.Configuration;
 import org.pircbotx.MultiBotManager;
 import org.pircbotx.PircBotX;
@@ -97,13 +98,28 @@ public class IRC extends ListenerAdapter<PircBotX> {
     
     public void start() {
         if (status != Status.DEAD) {
-            logger.warn("Trying to start IRC recording multiple times");
+            logger.info("Trying to start IRC recording multiple times");
             return;
         }
         
         recreateBots();
         manager.start();
         status = Status.ALIVE;
+    }
+    
+    public ArrayList<String> getLiveChannels() {
+        ArrayList<String> result = new ArrayList<>();
+        for (PircBotX bot : manager.getBots()) {
+            if (!bot.isConnected()) {
+                continue;
+            }
+            
+            for (Channel channel : bot.getUserChannelDao().getAllChannels()) {
+                result.add(sanitizeBroadcaster(channel.getName()));
+            }
+        }
+        
+        return result;
     }
 
     //Methods that handle events from servers
