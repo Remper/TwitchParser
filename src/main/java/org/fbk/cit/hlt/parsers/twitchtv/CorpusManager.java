@@ -1,6 +1,5 @@
 package org.fbk.cit.hlt.parsers.twitchtv;
 
-import org.fbk.cit.hlt.parsers.twitchtv.api.KrakenAPI;
 import org.fbk.cit.hlt.parsers.twitchtv.api.SecretAPI;
 import org.fbk.cit.hlt.parsers.twitchtv.api.Usher;
 import org.fbk.cit.hlt.parsers.twitchtv.entities.Stream;
@@ -24,10 +23,10 @@ public class CorpusManager {
     private File corpusFolder;
     private HashMap<String, Broadcaster> broadcasters;
     private HashMap<Broadcaster, Stream> recording;
+    private LinkedList<org.fbk.cit.hlt.parsers.twitchtv.api.result.Stream> streamObjQueue = new LinkedList<>();
     private IRC irc;
-    private String eventIrcServer;
+    private String eventIrcServer = null;
     private SecretAPI secretAPI;
-    private KrakenAPI api;
     private Usher usherAPI;
     private Collection<Receiver> receivers;
 
@@ -60,7 +59,6 @@ public class CorpusManager {
         irc.addServer("irc.twitch.tv");
         usherAPI = new Usher(token);
         secretAPI = new SecretAPI(token);
-        api = new KrakenAPI(token);
     }
 
     public static CorpusManager createCorpus(String corpusFolder, String name, String token) throws Exception {
@@ -93,6 +91,7 @@ public class CorpusManager {
      * @param stream Stream object received from KrakenAPI
      */
     public Broadcaster recordStream(org.fbk.cit.hlt.parsers.twitchtv.api.result.Stream stream) throws Exception {
+        streamObjQueue.push(stream);
         Broadcaster caster = addBroadcaster(stream.getName());
         if (recording.containsKey(caster)) {
             logger.info("Stream \""+stream.getDisplayName()+"\" is already being recorded");
@@ -181,6 +180,13 @@ public class CorpusManager {
         for (Receiver receiver : receivers) {
             if (receiver instanceof NowRecordingFileWriter) {
                 ((NowRecordingFileWriter) receiver).dump(recording.keySet());
+                continue;
+            }
+            if (receiver instanceof StreamDataFileWriter) {
+                org.fbk.cit.hlt.parsers.twitchtv.api.result.Stream element;
+                while ((element = streamObjQueue.poll()) != null) {
+                    ((StreamDataFileWriter) receiver).dumpStream(element);
+                }
             }
         }
     }
