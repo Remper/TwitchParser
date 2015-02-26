@@ -25,22 +25,24 @@ public class StreamDataFileWriter extends AbstractFileWriter {
         super(file);
     }
     
-    public void dumpStream(Stream stream) {
+    public synchronized void dumpStream(Stream stream) {
         try {
-            writer().write(stream.getName());
-            writer().write("\t");
-            writer().write(stream.getDisplayName());
-            writer().write("\t");
-            writer().write(dateFormat.format(stream.getStreamingFrom()));
-            writer().write("\t");
-            writer().write(dateFormat.format(new Date()));
-            writer().write("\t");
-            writer().write(stream.getDelay());
-            writer().write("\t");
-            writer().write(stream.getGame());
-            writer().write("\t");
-            writer().write(URLEncoder.encode(stream.getStatus(), "UTF-8"));
-            writer().write("\n");
+            Writer writer = writer();
+            writer.write(stream.getName());
+            writer.write("\t");
+            writer.write(stream.getDisplayName());
+            writer.write("\t");
+            writer.write(dateFormat.format(stream.getStreamingFrom()));
+            writer.write("\t");
+            writer.write(dateFormat.format(new Date()));
+            writer.write("\t");
+            writer.write(stream.getDelay());
+            writer.write("\t");
+            writer.write(stream.getGame());
+            writer.write("\t");
+            writer.write(URLEncoder.encode(stream.getStatus(), "UTF-8"));
+            writer.write("\n");
+            writer.flush();
         } catch (IOException e) {
             logger.warn("Can't write message to file: "+e.getClass()+" "+e.getMessage());
         }

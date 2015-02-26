@@ -69,6 +69,10 @@ public class KrakenAPI extends AbstractAPI {
     {
         return this.getStreams(game, channels, (new Filter()).hls().embeddable().limit(5).offset(0));
     }
+    
+    public ArrayList<Stream> getStreamsByWhitelist(String channels) {
+        return this.getStreams(null, channels, (new Filter()).hls().embeddable().offset(0));
+    }
 
     public ArrayList<Stream> getStreams(String game, String channels, Filter filter)
     {

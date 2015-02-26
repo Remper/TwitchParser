@@ -10,15 +10,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Properties;
+import java.util.*;
 
 /**
  * Main entry point for TwitchParser
  */
-public class CorpusRecorder extends Thread {
+public class CorpusRecorder {
     private KrakenAPI api;
     private CorpusManager cm;
     StreamConfiguration config;
@@ -29,29 +26,27 @@ public class CorpusRecorder extends Thread {
         this.config = config;
         this.api = new KrakenAPI(config.getToken());
         this.cm = new CorpusManager(corpus, config.getUser(), config.getToken());
-        
-        this.setPriority(Thread.NORM_PRIORITY);
-        this.setDaemon(false);
     }
     
     public static CorpusRecorder resume(String corpus) throws Exception {
         //Reading configuration
         StreamConfiguration configuration = new StreamConfiguration(corpus);
         CorpusRecorder cr = new CorpusRecorder(corpus, configuration);
-        cr.start();
         
         return cr;
-    }
-    
-    @Override
-    public void run() {
-        record();
     }
 
     /**
      * Start recording
      */
     public void record() {
+        APIPoller poller = new APIPoller(api);
+        APISubscriber subscriber = new APISubscriber();
+        poller.setReceiver(cm.getStreamDataWriter());
+        poller.subscribe(subscriber);
+        poller.updateStreamList(Arrays.asList(config.getWhitelist()));
+        poller.start();
+        
         HashSet<Stream> list = populateRecordList(config.getWildcard());
         if (list.size() == 0) {
             logger.info("Nothing to record. Aborting");
@@ -62,12 +57,22 @@ public class CorpusRecorder extends Thread {
         recordStreams(list);
         
         while (cm.isRecording() && !Thread.interrupted()) {
-            cm.watchUntilEvent();
+            try {
+                Thread.sleep(APIPoller.POLLING_DELAY / 4);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            cm.checkSystem();
+            if (subscriber.polled) {
+                subscriber.ack();
+                recordStreams(poller.getStreams());
+            }
+            
             int online = config.getWildcard() - cm.getOnlineCount();
             if (online < 0) {
                 online = 0;
             }
-            recordStreams(populateRecordList(online));
+            recordStreams(getTopStreams(online));
         }
         cm.stopRecording();
         
@@ -86,14 +91,10 @@ public class CorpusRecorder extends Thread {
     
     public HashSet<Stream> populateRecordList(int wildcards) {
         HashSet<Stream> list = new HashSet<>();
-        list.addAll(getWhitelistedStreams(String.join(",", config.getWhitelist())));
+        list.addAll(api.getStreamsByWhitelist(String.join(",", config.getWhitelist())));
         logger.info("Querying whitelist channels... " + list.size() + " online");
         list.addAll(getTopStreams(wildcards));
         return list;
-    }
-
-    public ArrayList<Stream> getWhitelistedStreams(String channels) {
-        return api.getStreams(null, channels, new Filter().embeddable().hls().offset(0));
     }
 
     public ArrayList<Stream> getTopStreams(int limit) {
@@ -137,5 +138,20 @@ public class CorpusRecorder extends Thread {
         }
         
         recorder.record();
+    }
+    
+    protected class APISubscriber implements APIListener {
+        public boolean polled = false;
+        
+        @Override
+        public void polled() {
+            synchronized (this) {
+                polled = true;
+            }
+        }
+        
+        public void ack() {
+            polled = false;
+        }
     }
 }

@@ -23,9 +23,9 @@ public class CorpusManager {
     private File corpusFolder;
     private HashMap<String, Broadcaster> broadcasters;
     private HashMap<Broadcaster, Stream> recording;
-    private LinkedList<org.fbk.cit.hlt.parsers.twitchtv.api.result.Stream> streamObjQueue = new LinkedList<>();
     private IRC irc;
     private String eventIrcServer = null;
+    private final StreamDataFileWriter streamDataWriter;
     private SecretAPI secretAPI;
     private Usher usherAPI;
     private Collection<Receiver> receivers;
@@ -49,10 +49,13 @@ public class CorpusManager {
         String ircFile = getChildPath(folder.getAbsolutePath(), "irc");
         String streamDataFile = getChildPath(folder.getAbsolutePath(), "stream_data");
         String nowRecordingFile = getChildPath(folder.getAbsolutePath(), "now_recording");
-        receivers = new ArrayList<>();
+        
         IRCFileWriter ircReceiver = new IRCFileWriter(ircFile);
+        streamDataWriter = new StreamDataFileWriter(streamDataFile);
+
+        receivers = new ArrayList<>();
         receivers.add(ircReceiver);
-        receivers.add(new StreamDataFileWriter(streamDataFile));
+        receivers.add(streamDataWriter);
         receivers.add(new NowRecordingFileWriter(nowRecordingFile));
         
         irc = new IRC(ircReceiver, token, name);
@@ -91,7 +94,6 @@ public class CorpusManager {
      * @param stream Stream object received from KrakenAPI
      */
     public Broadcaster recordStream(org.fbk.cit.hlt.parsers.twitchtv.api.result.Stream stream) throws Exception {
-        streamObjQueue.push(stream);
         Broadcaster caster = addBroadcaster(stream.getName());
         if (recording.containsKey(caster)) {
             logger.info("Stream \""+stream.getDisplayName()+"\" is already being recorded");
@@ -160,6 +162,25 @@ public class CorpusManager {
         irc.stop();
     }
 
+    public void checkSystem() {
+        Broadcaster dead = null;
+        while ((dead = getFirstDeadStream()) != null) {
+            logger.info(dead.getName()+" is dead. Stopping recording");
+            stopRecording(dead);
+        }
+
+        processReceivers();
+        if (!isRecording()) {
+            logger.info("System is not recording");
+            return;
+        }
+        
+        if (irc.getLiveChannels().size() == 0) {
+            irc.stop();
+            irc.start();
+        }
+    }
+    
     public void watchUntilEvent() {
         Broadcaster dead = null;
         while ((dead = getFirstDeadStream()) == null && isRecording() && !Thread.interrupted()) {
@@ -180,13 +201,6 @@ public class CorpusManager {
         for (Receiver receiver : receivers) {
             if (receiver instanceof NowRecordingFileWriter) {
                 ((NowRecordingFileWriter) receiver).dump(recording.keySet());
-                continue;
-            }
-            if (receiver instanceof StreamDataFileWriter) {
-                org.fbk.cit.hlt.parsers.twitchtv.api.result.Stream element;
-                while ((element = streamObjQueue.poll()) != null) {
-                    ((StreamDataFileWriter) receiver).dumpStream(element);
-                }
             }
         }
     }
@@ -239,5 +253,9 @@ public class CorpusManager {
 
     public Collection<Broadcaster> getBroadcasters() {
         return broadcasters.values();
+    }
+
+    public StreamDataFileWriter getStreamDataWriter() {
+        return streamDataWriter;
     }
 }
