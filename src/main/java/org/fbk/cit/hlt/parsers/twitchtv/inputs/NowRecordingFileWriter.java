@@ -31,6 +31,7 @@ public class NowRecordingFileWriter extends AbstractFileWriter {
                 writer().write(caster.getName());
             }
             writer().write("\n");
+            writer().flush();
         } catch (IOException e) {
             logger.warn("Can't write message to file: "+e.getClass()+" "+e.getMessage());
         }
