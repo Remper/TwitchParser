@@ -29,6 +29,7 @@ public class CorpusManager {
     private SecretAPI secretAPI;
     private Usher usherAPI;
     private Collection<Receiver> receivers;
+    private int chatReconnectionCounter = 5;
 
     public CorpusManager(String corpusFolder, String name, String token) throws Exception {
         File folder = new File(corpusFolder);
@@ -176,8 +177,12 @@ public class CorpusManager {
         }
         
         if (irc.getLiveChannels().size() == 0) {
-            irc.stop();
-            irc.start();
+            chatReconnectionCounter--;
+            if (chatReconnectionCounter <= 0) {
+                irc.stop();
+                irc.start();
+                chatReconnectionCounter = 5;
+            }
         }
     }
     
